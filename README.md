@@ -200,4 +200,4 @@ Atau gunakan CLI langsung:
 
 ## Lisensi
 
-Lihat [LICENSE](LICENSE).
+Kode didistribusikan berdasarkan [MIT License](LICENSE). Copyright dan notice proyek upstream Veria Labs tetap dipertahankan; perubahan edisi CDE Cohort 4 UNHAN dicatat pada [NOTICE.md](NOTICE.md).
