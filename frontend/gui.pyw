@@ -306,9 +306,9 @@ class CTFGui(tk.Tk):
         if model.startswith("codex/"):
             text = "Hemat = cepat/murah, Sedang = seimbang, Kuat = analisis tersulit. Codex memakai login."
         elif model.startswith("anthropic/"):
-            text = "Hemat = cepat/murah, Sedang = seimbang, Kuat = analisis tersulit. Memakai Claude API."
+            text = "Hemat = cepat/murah, Sedang = seimbang, Kuat = analisis tersulit. Claude memakai API key, bukan kuota Claude Code."
         elif model.startswith("groq/"):
-            text = "Hemat = cepat/murah, Sedang = seimbang, Kuat = analisis tersulit. Memakai Groq API."
+            text = "Hemat = cepat/murah, Sedang = seimbang, Kuat = analisis tersulit. Groq memakai output ringkas agar sesuai limit TPM."
         else:
             text = "Provider model eksternal."
         self.model_help_var.set(text)

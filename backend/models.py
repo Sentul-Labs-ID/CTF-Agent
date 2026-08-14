@@ -133,13 +133,18 @@ def resolve_model_settings(spec: str) -> ModelSettings:
                 bedrock_cache_tool_definitions=True,
                 bedrock_cache_messages=True,
             )
-        case "azure" | "zen" | "groq":
+        case "azure" | "zen":
             # Azure/Zen use OpenAI chat completions — server-side prompt caching
             # is automatic, no explicit config needed. Set max_tokens to avoid
             # reserving the full context window.
-            return OpenAIChatModelSettings(
-                max_tokens=32_768 if provider == "groq" else 128_000,
-            )
+            return OpenAIChatModelSettings(max_tokens=128_000)
+        case "groq":
+            # Groq validates the requested completion allowance against the
+            # organization's per-minute token limit. A 32K allowance made even
+            # a small challenge fail immediately on free/on-demand accounts
+            # (8K TPM for GPT-OSS, 12K TPM for Llama 3.3 70B). Keep each agent
+            # turn compact; the solver can continue through additional turns.
+            return OpenAIChatModelSettings(max_tokens=4_096)
         case "anthropic":
             return AnthropicModelSettings(max_tokens=64_000)
         case "google":

@@ -122,6 +122,8 @@ GROQ_API_KEY=gsk_...
 - Model Codex tidak memakai kedua key tersebut; Codex menggunakan sesi `codex login`.
 - Claude menggunakan saldo dan rate limit Anthropic API.
 - Groq menggunakan saldo dan rate limit akun Groq.
+- Integrasi Claude tidak memakai login atau kuota subscription Claude Code. Anthropic melarang aplikasi pihak ketiga menawarkan login `claude.ai` atau rate limit subscription tanpa persetujuan sebelumnya.
+- Output setiap putaran Groq dibatasi 4.096 token agar permintaan awal tidak langsung melampaui batas TPM akun on-demand. Riwayat dan beberapa putaran cepat masih dapat menyentuh rate limit; tunggu sebentar lalu lanjutkan jika Groq mengembalikan 429.
 - Atur spending limit pada dashboard provider sebelum menjalankan challenge panjang.
 
 ## Hasil dan Artefak
