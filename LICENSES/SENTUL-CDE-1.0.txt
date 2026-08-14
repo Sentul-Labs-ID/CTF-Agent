@@ -1,0 +1,56 @@
+Sentul Labs CDE License, Version 1.0
+
+Copyright (c) 2026 Sentul Labs, Inc.
+
+1. Definitions
+
+"Sentul Materials" means the original software, documentation, and
+modifications authored by or for Sentul Labs, Inc. in this repository. Sentul
+Materials do not include Third-Party Materials.
+
+"Third-Party Materials" means software, documentation, or other material for
+which copyright is held by another party, including material derived from the
+Veria Labs CTF Agent project.
+
+2. Permission Grant
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+the Sentul Materials, to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Sentul Materials, and to permit persons
+to whom the Sentul Materials are furnished to do so, subject to the following
+conditions:
+
+a. The above copyright notice, this license, and the attribution notice below
+   must be included in all copies or substantial portions of the Sentul
+   Materials.
+
+b. Source distributions must preserve the attribution notice in a NOTICE file.
+   Binary distributions must reproduce the attribution notice in accompanying
+   documentation or another reasonably visible location.
+
+c. The names "Sentul Labs", "CDE Cohort 4", and "UNHAN", and their associated
+   marks, may not be used to endorse or promote products derived from the
+   Sentul Materials without prior written permission. Accurate attribution is
+   permitted and required by this license.
+
+3. Required Attribution Notice
+
+"Includes software developed by Sentul Labs, Inc. for CDE Cohort 4 UNHAN.
+Project source: https://github.com/Sentul-Labs-ID/CTF-Agent"
+
+4. Third-Party Materials
+
+This license does not replace, restrict, or modify any license that applies to
+Third-Party Materials. Third-Party Materials remain subject to their respective
+licenses and notices. The Veria Labs portions of this repository remain
+available under the MIT License included at LICENSES/MIT-Veria-Labs.txt.
+
+5. Disclaimer of Warranty and Limitation of Liability
+
+THE SENTUL MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES,
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE,
+ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SENTUL MATERIALS OR THE USE OR
+OTHER DEALINGS IN THE SENTUL MATERIALS.

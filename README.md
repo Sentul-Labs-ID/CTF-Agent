@@ -200,4 +200,10 @@ Atau gunakan CLI langsung:
 
 ## Lisensi
 
-Kode didistribusikan berdasarkan [MIT License](LICENSE). Copyright dan notice proyek upstream Veria Labs tetap dipertahankan; perubahan edisi CDE Cohort 4 UNHAN dicatat pada [NOTICE.md](NOTICE.md).
+Repositori menggunakan struktur dual-license:
+
+- Material dan perubahan milik Sentul Labs menggunakan [Sentul Labs CDE License v1.0](LICENSES/SENTUL-CDE-1.0.txt). Lisensi ini mengizinkan penggunaan komersial, modifikasi, redistribusi, dan sublicensing dengan kewajiban atribusi.
+- Material upstream Veria Labs tetap menggunakan [MIT License](LICENSES/MIT-Veria-Labs.txt).
+- Pembagian dan atribusi lengkap tersedia pada [LICENSE](LICENSE), [NOTICE.md](NOTICE.md), dan [peta lisensi](LICENSES/README.md).
+
+Lisensi khusus ini tidak mencabut hak yang sudah diberikan pada versi historis yang sebelumnya dirilis di bawah MIT.

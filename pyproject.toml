@@ -2,8 +2,8 @@
 name = "ctf-agent-two"
 version = "0.1.0"
 description = "CTF agent v2 — multi-model solver swarm"
-license = "MIT"
-license-files = ["LICENSE"]
+license = "LicenseRef-Sentul-CDE-1.0 AND MIT"
+license-files = ["LICENSE", "NOTICE.md", "LICENSES/*"]
 requires-python = ">=3.14"
 dependencies = [
     "pydantic-ai[anthropic,bedrock,openai,google]",
