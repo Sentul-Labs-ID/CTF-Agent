@@ -122,7 +122,7 @@ RUN git clone --depth=1 https://github.com/RsaCtfTool/RsaCtfTool /opt/RsaCtfTool
 
 # ── CADO-NFS (Number Field Sieve — large integer factoring + DLP) ─────────────
 RUN git clone --depth=1 https://gitlab.inria.fr/cado-nfs/cado-nfs.git /opt/cado-nfs \
-    && cd /opt/cado-nfs && make -j$(nproc)
+    && cd /opt/cado-nfs && make -j2
 RUN printf '#!/bin/bash\n\
 BUILD_PARENT=/opt/cado-nfs/build\n\
 H=$(hostname)\n\

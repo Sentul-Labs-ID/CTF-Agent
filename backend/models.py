@@ -6,9 +6,11 @@ from typing import TYPE_CHECKING
 
 import boto3
 from pydantic_ai.models import Model
+from pydantic_ai.models.anthropic import AnthropicModel, AnthropicModelSettings
 from pydantic_ai.models.bedrock import BedrockConverseModel, BedrockModelSettings
 from pydantic_ai.models.google import GoogleModel, GoogleModelSettings
-from pydantic_ai.models.openai import OpenAIModel, OpenAIModelSettings
+from pydantic_ai.models.openai import OpenAIChatModel, OpenAIChatModelSettings
+from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.bedrock import BedrockProvider
 from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.openai import OpenAIProvider
@@ -21,19 +23,24 @@ if TYPE_CHECKING:
 DEFAULT_MODELS: list[str] = [
     "claude-sdk/claude-opus-4-6/medium",
     "claude-sdk/claude-opus-4-6/max",
-    "codex/gpt-5.4",
-    "codex/gpt-5.4-mini",
-    "codex/gpt-5.3-codex",
+    "codex/gpt-5.6-luna",
+    "codex/gpt-5.6-terra",
+    "codex/gpt-5.6-sol",
 ]
 
 # Context window sizes (tokens)
 CONTEXT_WINDOWS: dict[str, int] = {
     "us.anthropic.claude-opus-4-6-v1": 1_000_000,
     "claude-opus-4-6": 1_000_000,
-    "gpt-5.4": 1_000_000,
-    "gpt-5.4-mini": 400_000,
-    "gpt-5.3-codex": 1_000_000,
-    "gpt-5.3-codex-spark": 128_000,
+    "gpt-5.6-sol": 1_050_000,
+    "gpt-5.6-terra": 1_050_000,
+    "gpt-5.6-luna": 1_050_000,
+    "claude-opus-4-8": 1_000_000,
+    "claude-sonnet-4-6": 1_000_000,
+    "claude-haiku-4-5": 200_000,
+    "openai/gpt-oss-120b": 131_072,
+    "openai/gpt-oss-20b": 131_072,
+    "llama-3.3-70b-versatile": 131_072,
     "gemini-3-flash-preview": 1_000_000,
 }
 
@@ -41,8 +48,12 @@ CONTEXT_WINDOWS: dict[str, int] = {
 VISION_MODELS: set[str] = {
     "us.anthropic.claude-opus-4-6-v1",
     "claude-opus-4-6",
-    "gpt-5.4",
-    "gpt-5.4-mini",
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "claude-opus-4-8",
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5",
     "gemini-3-flash-preview",
 }
 
@@ -69,7 +80,7 @@ def resolve_model(spec: str, settings: Settings) -> Model:
                     provider=BedrockProvider(bedrock_client=client),
                 )
         case "azure":
-            return OpenAIModel(
+            return OpenAIChatModel(
                 model_id,
                 provider=OpenAIProvider(
                     base_url=settings.azure_openai_endpoint,
@@ -77,11 +88,24 @@ def resolve_model(spec: str, settings: Settings) -> Model:
                 ),
             )
         case "zen":
-            return OpenAIModel(
+            return OpenAIChatModel(
                 model_id,
                 provider=OpenAIProvider(
                     base_url="https://opencode.ai/zen/v1",
                     api_key=settings.opencode_zen_api_key,
+                ),
+            )
+        case "anthropic":
+            return AnthropicModel(
+                model_id,
+                provider=AnthropicProvider(api_key=settings.anthropic_api_key),
+            )
+        case "groq":
+            return OpenAIChatModel(
+                model_id,
+                provider=OpenAIProvider(
+                    base_url="https://api.groq.com/openai/v1",
+                    api_key=settings.groq_api_key,
                 ),
             )
         case "google":
@@ -109,13 +133,15 @@ def resolve_model_settings(spec: str) -> ModelSettings:
                 bedrock_cache_tool_definitions=True,
                 bedrock_cache_messages=True,
             )
-        case "azure" | "zen":
+        case "azure" | "zen" | "groq":
             # Azure/Zen use OpenAI chat completions — server-side prompt caching
             # is automatic, no explicit config needed. Set max_tokens to avoid
             # reserving the full context window.
-            return OpenAIModelSettings(
-                max_tokens=128_000,
+            return OpenAIChatModelSettings(
+                max_tokens=32_768 if provider == "groq" else 128_000,
             )
+        case "anthropic":
+            return AnthropicModelSettings(max_tokens=64_000)
         case "google":
             return GoogleModelSettings(
                 max_tokens=64_000,
@@ -130,8 +156,12 @@ def resolve_model_settings(spec: str) -> ModelSettings:
 
 def model_id_from_spec(spec: str) -> str:
     """Extract just the model ID from a spec (strips effort suffix)."""
-    parts = spec.split("/")
-    return parts[1] if len(parts) >= 2 else spec
+    provider, separator, remainder = spec.partition("/")
+    if not separator:
+        return spec
+    if provider == "claude-sdk":
+        return remainder.split("/", 1)[0]
+    return remainder
 
 
 def provider_from_spec(spec: str) -> str:

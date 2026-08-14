@@ -172,10 +172,12 @@ def build_prompt(
             "For RSA: use `RsaCtfTool`, sage ECM, or `cado-nfs`."
         ),
         "   - Pwn: `stty raw -echo` before launching vulnerable binaries over nc.",
-        '4. **Ignore placeholder flags** — `CTF{flag}`, `CTF{placeholder}` are not real flags.',
+        "4. **Ignore placeholder flags** — `CTF{flag}`, `CTF{placeholder}` are not real flags.",
         f"5. {submit_hint}",
-        "6. Once CORRECT: output `FLAG: <value>` on its own line.",
-        "7. Do not guess. Do not ask. Cover maximum surface area.",
+        "6. Save every useful script, exploit, decoded file, and note under `/challenge/workspace/`.",
+        "   Prefer a reproducible `solve.py` or `solve.sh` plus `NOTES.md` before finishing.",
+        "7. Once CORRECT: output `FLAG: <value>` on its own line and summarize the reproducible method.",
+        "8. Do not guess. Do not ask. Cover maximum surface area.",
     ]
 
     return "\n".join(lines)

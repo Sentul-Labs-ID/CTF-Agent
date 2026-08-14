@@ -1,152 +1,203 @@
-# CTF Agent
+# CTF Agent — Sentul Labs Local Edition
 
-Autonomous CTF (Capture The Flag) solver that races multiple AI models against challenges in parallel. Built in a weekend, we used it to solve all 52/52 challenges and win **1st place at BSidesSF 2026 CTF**.
+CTF Agent adalah solver Capture The Flag berbasis AI yang menjalankan analisis di dalam Docker sandbox. Versi ini menambahkan GUI Windows, pilihan model bertingkat, provider Claude/Groq, workspace persisten, trace yang dapat dipantau, dan generator write-up otomatis.
 
-Built by [Veria Labs](https://verialabs.com), founded by members of [.;,;.](https://ctftime.org/team/222911) (smiley), the [#1 US CTF team on CTFTime in 2024 and 2025](https://ctftime.org/stats/2024/US). We build AI agents that find and exploit real security vulnerabilities for large enterprises.
+Proyek ini dikembangkan dari [verialabs/ctf-agent](https://github.com/verialabs/ctf-agent). Gunakan hanya pada kompetisi, challenge, dan target yang memang Anda berwenang uji.
 
-## Results
+## Fitur
 
-| Competition | Challenges Solved | Result |
-|-------------|:-:|--------|
-| **BSidesSF 2026** | 52/52 (100%) | **1st place ($1,500)** |
+- GUI desktop untuk membuat dan menjalankan satu challenge tanpa PowerShell.
+- Model bertingkat **Hemat**, **Sedang**, dan **Kuat**.
+- Codex GPT-5.6 melalui login Codex CLI.
+- Claude melalui Anthropic API.
+- GPT-OSS dan Llama melalui Groq API.
+- Docker sandbox dengan tool pwn, reverse engineering, crypto, forensics, stego, dan web.
+- Workspace persisten untuk `solve.py`, exploit, hasil decode, dan catatan.
+- Trace perintah dan hasil agent yang dapat dipantau langsung.
+- Redaksi otomatis untuk API key, token, PIN, cookie, password, dan header Authorization.
+- Pembuatan `WRITEUP.md` otomatis setelah flag ditemukan.
+- Mode GUI `--no-submit`: flag dikirim ke platform secara manual oleh pengguna.
 
-The agent solves challenges across all categories — pwn, rev, crypto, forensics, web, and misc.
+## Struktur Direktori
 
-## How It Works
-
-A **coordinator** LLM manages the competition while **solver swarms** attack individual challenges. Each swarm runs multiple models simultaneously — the first to find the flag wins.
-
-```
-                        +-----------------+
-                        |  CTFd Platform  |
-                        +--------+--------+
-                                 |
-                        +--------v--------+
-                        |  Poller (5s)    |
-                        +--------+--------+
-                                 |
-                        +--------v--------+
-                        | Coordinator LLM |
-                        | (Claude/Codex)  |
-                        +--------+--------+
-                                 |
-              +------------------+------------------+
-              |                  |                  |
-     +--------v--------+ +------v---------+ +------v---------+
-     | Swarm:          | | Swarm:         | | Swarm:         |
-     | challenge-1     | | challenge-2    | | challenge-N    |
-     |                 | |                | |                |
-     |  Opus (med)     | |  Opus (med)    | |                |
-     |  Opus (max)     | |  Opus (max)    | |     ...        |
-     |  GPT-5.4        | |  GPT-5.4       | |                |
-     |  GPT-5.4-mini   | |  GPT-5.4-mini  | |                |
-     |  GPT-5.3-codex  | |  GPT-5.3-codex | |                |
-     +--------+--------+ +--------+-------+ +----------------+
-              |                    |
-     +--------v--------+  +-------v--------+
-     | Docker Sandbox  |  | Docker Sandbox |
-     | (isolated)      |  | (isolated)     |
-     |                 |  |                |
-     | pwntools, r2,   |  | pwntools, r2,  |
-     | gdb, python...  |  | gdb, python... |
-     +-----------------+  +----------------+
+```text
+CTF-Agent/
+├── backend/                  # Solver, provider model, sandbox, trace, write-up
+├── frontend/
+│   ├── gui.pyw              # GUI Tkinter
+│   └── README.md
+├── sandbox/                 # Dockerfile sandbox CTF
+├── challenges/              # Data challenge lokal (diabaikan Git)
+├── logs/                    # Trace runtime (diabaikan Git)
+├── tests/
+├── .env                     # Kredensial lokal (diabaikan Git)
+├── Start CTF Agent.cmd      # Launcher GUI Windows
+└── run-local.ps1            # Launcher CLI satu challenge
 ```
 
-Each solver runs in an isolated Docker container with CTF tools pre-installed. Solvers never give up — they keep trying different approaches until the flag is found.
+## Persyaratan
 
-## Quick Start
+- Windows 10/11.
+- Python 3.14 atau lebih baru.
+- Docker Desktop dengan Linux containers aktif.
+- Codex CLI untuk model GPT-5.6, atau API key Anthropic/Groq.
+- RAM yang cukup untuk Docker sandbox; 8 GB minimum, 16 GB direkomendasikan.
 
-```bash
-# Install
-uv sync
+## Instalasi
 
-# Build sandbox image
+```powershell
+git clone https://github.com/Sentul-Labs-ID/CTF-Agent.git
+cd CTF-Agent
+
+python -m pip install --user uv
+python -m uv sync
+
 docker build -f sandbox/Dockerfile.sandbox -t ctf-sandbox .
+```
 
-# Configure credentials
-cp .env.example .env
-# Edit .env with your API keys and CTFd token
+Untuk menggunakan GPT-5.6 melalui akun Codex:
 
-# Run against a CTFd instance
-uv run ctf-solve \
-  --ctfd-url https://ctf.example.com \
-  --ctfd-token ctfd_your_token \
-  --challenges-dir challenges \
-  --max-challenges 10 \
+```powershell
+codex login
+```
+
+Salin konfigurasi awal jika `.env` belum tersedia:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Jangan commit atau membagikan file `.env`.
+
+## Menjalankan GUI
+
+Klik dua kali:
+
+```text
+Start CTF Agent.cmd
+```
+
+Alur penggunaan:
+
+1. Klik **Buat Baru…** dan masukkan nama challenge.
+2. Pilih kategori: web, pwn, reverse, crypto, forensics, misc, atau osint.
+3. Salin deskripsi dan hint challenge secara lengkap.
+4. Masukkan target spesifik pada **URL / host:port**:
+   - Web: `https://target.example/challenge`
+   - TCP: `nc target.example 1337`
+5. Klik **Tambah File…** jika tersedia binary, source, PCAP, gambar, atau arsip.
+6. Klik **Simpan Metadata**.
+7. Pilih satu model.
+8. Klik **Mulai Solver**.
+9. Pantau tab **Output Solver** dan **Langkah Agent**.
+10. Setelah flag ditemukan, periksa dan edit tab **Write-up**, lalu submit flag sendiri ke platform CTF.
+
+Satu folder challenge digunakan untuk satu soal. Untuk platform non-CTFd atau situs khusus, masukkan setiap soal secara manual. Jangan menggunakan URL halaman daftar challenge sebagai target exploit; masukkan URL/host milik soal yang sedang dikerjakan.
+
+## Pilihan Model
+
+| Tingkat | Codex | Claude API | Groq API |
+|---|---|---|---|
+| **Hemat** | GPT-5.6 Luna | Claude Haiku 4.5 | GPT-OSS 20B |
+| **Sedang** | GPT-5.6 Terra | Claude Sonnet 4.6 | Llama 3.3 70B |
+| **Kuat** | GPT-5.6 Sol | Claude Opus 4.8 | GPT-OSS 120B |
+
+- **Hemat** cocok untuk enumerasi awal dan challenge sederhana.
+- **Sedang** adalah pilihan default untuk keseimbangan kemampuan, kecepatan, dan biaya.
+- **Kuat** ditujukan untuk challenge sulit dan dapat memakai lebih banyak token atau biaya.
+
+GUI menjalankan satu model per challenge untuk membantu mengendalikan pemakaian token.
+
+## Konfigurasi API
+
+API key dapat dimasukkan dari tombol **Atur API Key…** pada GUI. Nilainya disimpan lokal di `.env` dan tidak diteruskan melalui command line.
+
+Konfigurasi manual:
+
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+GROQ_API_KEY=gsk_...
+```
+
+- Model Codex tidak memakai kedua key tersebut; Codex menggunakan sesi `codex login`.
+- Claude menggunakan saldo dan rate limit Anthropic API.
+- Groq menggunakan saldo dan rate limit akun Groq.
+- Atur spending limit pada dashboard provider sebelum menjalankan challenge panjang.
+
+## Hasil dan Artefak
+
+Untuk challenge bernama `demo`, hasil tersimpan sebagai berikut:
+
+```text
+challenges/demo/
+├── metadata.yml
+├── distfiles/
+├── workspace/
+│   └── <model>/             # solve.py, exploit, notes, hasil decode
+├── writeups/
+│   └── <model>.md           # arsip write-up per model
+└── WRITEUP.md               # write-up terbaru yang dapat diedit dari GUI
+```
+
+Trace JSONL berada di folder `logs/`. Redaksi kredensial bersifat best-effort; selalu periksa `WRITEUP.md` dan trace sebelum dipublikasikan.
+
+## Menjalankan dari PowerShell
+
+```powershell
+.\run-local.ps1 -Challenge challenges\nama-challenge
+```
+
+Memilih model lain:
+
+```powershell
+.\run-local.ps1 `
+  -Challenge challenges\nama-challenge `
+  -Model codex/gpt-5.6-sol
+```
+
+Atau gunakan CLI langsung:
+
+```powershell
+.\.venv\Scripts\ctf-solve.exe `
+  --challenge challenges\nama-challenge `
+  --models codex/gpt-5.6-terra `
+  --no-submit `
+  --max-challenges 1 `
   -v
 ```
 
-## Coordinator Backends
+## Tool Sandbox
 
-```bash
-# Claude SDK coordinator (default)
-uv run ctf-solve --coordinator claude ...
+| Kategori | Tool utama |
+|---|---|
+| Binary/Reverse | radare2, GDB, objdump, binwalk, strings, readelf, pyghidra |
+| Pwn | pwntools, ROPgadget, angr, unicorn, capstone |
+| Crypto | SageMath, RsaCtfTool, z3, gmpy2, pycryptodome, cado-nfs |
+| Forensics | volatility3, Sleuthkit, foremost, exiftool |
+| Stego | steghide, stegseek, zsteg, ImageMagick, tesseract |
+| Web | curl, nmap, Python requests, Flask |
+| Misc | ffmpeg, sox, Pillow, NumPy, SciPy, PyTorch |
 
-# Codex coordinator (GPT-5.4 via JSON-RPC)
-uv run ctf-solve --coordinator codex ...
+## Pengujian
+
+```powershell
+.\.venv\Scripts\pytest.exe -q
+.\.venv\Scripts\ruff.exe check backend frontend tests
 ```
 
-## Solver Models
+## Keamanan
 
-Default model lineup (configurable in `backend/models.py`):
+- Gunakan hanya pada target yang tercakup dalam aturan kompetisi.
+- Jangan memasukkan PIN tim, cookie login, atau API key ke deskripsi challenge.
+- GUI tidak melakukan submit flag otomatis.
+- Docker mengisolasi tool solver, tetapi target jaringan tetap berasal dari input pengguna.
+- Hentikan agent jika terlihat mengulang langkah atau pemakaian token meningkat tanpa kemajuan.
 
-| Model | Provider | Notes |
-|-------|----------|-------|
-| Claude Opus 4.6 (medium) | Claude SDK | Balanced speed/quality |
-| Claude Opus 4.6 (max) | Claude SDK | Deep reasoning |
-| GPT-5.4 | Codex | Best overall solver |
-| GPT-5.4-mini | Codex | Fast, good for easy challenges |
-| GPT-5.3-codex | Codex | Reasoning model (xhigh effort) |
+## Kredit
 
-## Sandbox Tooling
+- [Veria Labs — ctf-agent](https://github.com/verialabs/ctf-agent), proyek upstream.
+- [es3n1n/Eruditus](https://github.com/es3n1n/Eruditus), helper interaksi CTFd dan HTML pada upstream.
 
-Each solver gets an isolated Docker container pre-loaded with CTF tools:
+## Lisensi
 
-| Category | Tools |
-|----------|-------|
-| **Binary** | radare2, GDB, objdump, binwalk, strings, readelf |
-| **Pwn** | pwntools, ROPgadget, angr, unicorn, capstone |
-| **Crypto** | SageMath, RsaCtfTool, z3, gmpy2, pycryptodome, cado-nfs |
-| **Forensics** | volatility3, Sleuthkit (mmls/fls/icat), foremost, exiftool |
-| **Stego** | steghide, stegseek, zsteg, ImageMagick, tesseract OCR |
-| **Web** | curl, nmap, Python requests, flask |
-| **Misc** | ffmpeg, sox, Pillow, numpy, scipy, PyTorch, podman |
-
-## Features
-
-- **Multi-model racing** — multiple AI models attack each challenge simultaneously
-- **Auto-spawn** — new challenges detected and attacked automatically
-- **Coordinator LLM** — reads solver traces, crafts targeted technical guidance
-- **Cross-solver insights** — findings shared between models via message bus
-- **Docker sandboxes** — isolated containers with full CTF tooling
-- **Operator messaging** — send hints to running solvers mid-competition
-
-## Configuration
-
-Copy `.env.example` to `.env` and fill in your keys:
-
-```bash
-cp .env.example .env
-```
-
-```env
-CTFD_URL=https://ctf.example.com
-CTFD_TOKEN=ctfd_your_token
-ANTHROPIC_API_KEY=sk-ant-...
-OPENAI_API_KEY=sk-...
-GEMINI_API_KEY=...
-```
-
-All settings can also be passed as environment variables or CLI flags.
-
-## Requirements
-
-- Python 3.14+
-- Docker
-- API keys for at least one provider (Anthropic, OpenAI, Google)
-- `codex` CLI (for Codex solver/coordinator)
-- `claude` CLI (bundled with claude-agent-sdk)
-
-## Acknowledgements
-
-- [es3n1n/Eruditus](https://github.com/es3n1n/Eruditus) — CTFd interaction and HTML helpers in `pull_challenges.py`
+Lihat [LICENSE](LICENSE).

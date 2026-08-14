@@ -19,7 +19,10 @@ def solver_output_json_schema() -> dict:
         "properties": {
             "type": {"type": "string", "enum": ["flag_found"]},
             "flag": {"type": "string"},
-            "method": {"type": "string"},
+            "method": {
+                "type": "string",
+                "description": "Reproducible summary of the exploit/solution and saved artifact names.",
+            },
         },
         "required": ["type", "flag", "method"],
         "additionalProperties": False,

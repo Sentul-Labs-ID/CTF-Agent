@@ -15,10 +15,12 @@ logger = logging.getLogger(__name__)
 PROVIDER_MAP: dict[str, str] = {
     "bedrock": "anthropic",
     "claude-sdk": "anthropic",
+    "anthropic": "anthropic",
     "azure": "openai",
     "zen": "openai",
     "codex": "openai",
     "google": "google",
+    "groq": "groq",
 }
 
 # Fallback pricing for models not in genai-prices (per 1M tokens, USD)
@@ -32,26 +34,6 @@ FALLBACK_PRICING: dict[str, dict[str, float]] = {
         "input": 5.00,
         "cached_input": 0.50,
         "output": 25.00,
-    },
-    "gpt-5.4-mini": {
-        "input": 0.75,
-        "cached_input": 0.075,
-        "output": 4.50,
-    },
-    "gpt-5.4": {
-        "input": 2.50,
-        "cached_input": 0.25,
-        "output": 15.00,
-    },
-    "gpt-5.3-codex": {
-        "input": 1.75,
-        "cached_input": 0.175,
-        "output": 14.00,
-    },
-    "gpt-5.3-codex-spark": {
-        "input": 0.50,
-        "cached_input": 0.05,
-        "output": 2.00,
     },
     "gemini-3-flash-preview": {
         "input": 0.15,
@@ -215,7 +197,8 @@ class CostTracker:
             hit_rate = f"{(s['cached'] / s['input'] * 100):.0f}%" if s["input"] > 0 else "n/a"
             logger.info(
                 "  %s: $%.2f | %s in / %s cached (%s hit) / %s out",
-                model, s["cost"],
+                model,
+                s["cost"],
                 _fmt_tokens(s["input"]),
                 _fmt_tokens(s["cached"]),
                 hit_rate,

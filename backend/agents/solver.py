@@ -43,6 +43,7 @@ from backend.tools.sandbox import (
 )
 from backend.tools.vision import view_image
 from backend.tracing import SolverTracer
+from backend.writeup import generate_writeup
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,11 @@ class TracingToolset(WrapperToolset[SolverDeps]):
     step_counter: list[int] = field(repr=False)
 
     async def call_tool(
-        self, name: str, tool_args: dict[str, Any], ctx: RunContext[SolverDeps], tool: ToolsetTool[SolverDeps]
+        self,
+        name: str,
+        tool_args: dict[str, Any],
+        ctx: RunContext[SolverDeps],
+        tool: ToolsetTool[SolverDeps],
     ) -> Any:
         self.step_counter[0] += 1
         step = self.step_counter[0]
@@ -86,6 +91,7 @@ class TracingToolset(WrapperToolset[SolverDeps]):
 
         if step % 5 == 0 and ctx.deps.message_bus and isinstance(result, str):
             from backend.tools.core import do_check_findings
+
             findings_text = await do_check_findings(ctx.deps.message_bus, ctx.deps.model_spec)
             if findings_text and "No new findings" not in findings_text:
                 result = f"{result}\n\n---\n{findings_text}"
@@ -96,8 +102,18 @@ class TracingToolset(WrapperToolset[SolverDeps]):
 
 def _build_toolset(deps: SolverDeps) -> FunctionToolset[SolverDeps]:
     """Build the raw toolset for a solver agent."""
-    tools = [bash, read_file, write_file, list_files, submit_flag, web_fetch,
-             webhook_create, webhook_get_requests, check_findings, notify_coordinator]
+    tools = [
+        bash,
+        read_file,
+        write_file,
+        list_files,
+        submit_flag,
+        web_fetch,
+        webhook_create,
+        webhook_get_requests,
+        check_findings,
+        notify_coordinator,
+    ]
     if deps.use_vision:
         tools.append(view_image)
     return FunctionToolset(tools=tools, max_retries=4)
@@ -132,6 +148,7 @@ class Solver:
             image=getattr(settings, "sandbox_image", "ctf-sandbox"),
             challenge_dir=challenge_dir,
             memory_limit=getattr(settings, "container_memory_limit", "4g"),
+            workspace_name=self.model_id,
         )
         self.use_vision = supports_vision(model_spec)
         self.deps = SolverDeps(
@@ -152,6 +169,7 @@ class Solver:
         self._flag: str | None = None
         self._confirmed: bool = False
         self._findings: str = ""
+        self._method: str = ""
 
     async def start(self) -> None:
         """Start the sandbox and build the agent."""
@@ -198,10 +216,10 @@ class Solver:
         assert self._agent is not None
 
         t0 = time.monotonic()
-        steps_before = self._step_count[0]
 
         try:
             from pydantic_ai.usage import UsageLimits
+
             result = await self._agent.run(
                 "Solve this CTF challenge." if not self._messages else "Continue solving.",
                 deps=self.deps,
@@ -213,14 +231,17 @@ class Solver:
             usage = result.usage()
 
             self.cost_tracker.record(
-                self.agent_name, usage, self.model_id,
+                self.agent_name,
+                usage,
+                self.model_id,
                 provider_spec=provider_from_spec(self.model_spec),
                 duration_seconds=duration,
             )
 
             agent_usage = self.cost_tracker.by_agent.get(self.agent_name)
             self.tracer.usage(
-                usage.input_tokens, usage.output_tokens,
+                usage.input_tokens,
+                usage.output_tokens,
                 usage.cache_read_tokens,
                 agent_usage.cost_usd if agent_usage else 0.0,
             )
@@ -229,13 +250,15 @@ class Solver:
 
             # Trace model responses from new messages
             from pydantic_ai.messages import ModelResponse, TextPart
+
             for msg in result.new_messages():
                 if isinstance(msg, ModelResponse):
                     text_parts = [p.content for p in msg.parts if isinstance(p, TextPart)]
                     text = " ".join(text_parts)
                     msg_usage = msg.usage
                     self.tracer.model_response(
-                        text[:500], self._step_count[0],
+                        text,
+                        self._step_count[0],
                         input_tokens=msg_usage.input_tokens if msg_usage else 0,
                         output_tokens=msg_usage.output_tokens if msg_usage else 0,
                     )
@@ -243,6 +266,7 @@ class Solver:
             output = result.output
             if isinstance(output, FlagFound):
                 self._flag = output.flag
+                self._method = output.method
                 self._findings = f"Flag found via {output.method}: {output.flag}"
                 # In dry-run mode, structured output is sufficient (can't verify via CTFd)
                 if self.deps.no_submit:
@@ -284,10 +308,32 @@ class Solver:
         self.tracer.event("bump", insights=insights[:500])
         logger.info(f"[{self.agent_name}] Bumped with sibling insights")
 
-    def _result(self, status: str, run_steps: int | None = None, run_cost: float | None = None) -> SolverResult:
+    def _result(
+        self, status: str, run_steps: int | None = None, run_cost: float | None = None
+    ) -> SolverResult:
         agent_usage = self.cost_tracker.by_agent.get(self.agent_name)
         cost = agent_usage.cost_usd if agent_usage else 0.0
-        self.tracer.event("finish", status=status, flag=self._flag, confirmed=self._confirmed, cost_usd=round(cost, 4))
+        self.tracer.event(
+            "finish",
+            status=status,
+            flag=self._flag,
+            confirmed=self._confirmed,
+            cost_usd=round(cost, 4),
+        )
+        if status == FLAG_FOUND and self._flag:
+            try:
+                path = generate_writeup(
+                    self.challenge_dir,
+                    self.meta,
+                    self.model_id,
+                    self._flag,
+                    self._method or self._findings,
+                    self.tracer.path,
+                    self.sandbox.workspace_dir,
+                )
+                self.tracer.event("writeup_created", path=str(path))
+            except Exception as exc:
+                logger.warning("[%s] Write-up generation failed: %s", self.agent_name, exc)
         return SolverResult(
             flag=self._flag,
             status=status,

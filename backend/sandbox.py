@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
+import re
 import shlex
 import tarfile
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -82,6 +82,7 @@ class DockerSandbox:
     image: str
     challenge_dir: str
     memory_limit: str = "16g"
+    workspace_name: str = "default"
     workspace_dir: str = ""
     _container: Any = field(default=None, repr=False)
     _docker: Any = field(default=None, repr=False)
@@ -102,7 +103,7 @@ class DockerSandbox:
             if s.endswith("m"):
                 return int(s[:-1]) * 1024 * 1024
             return int(s)
-        except (ValueError, IndexError):
+        except ValueError, IndexError:
             logger.warning("Invalid memory_limit %r, defaulting to 4GB", self.memory_limit)
             return 4 * 1024 * 1024 * 1024
 
@@ -111,9 +112,11 @@ class DockerSandbox:
         async with sem:
             self._docker = aiodocker.Docker()
 
-            self.workspace_dir = tempfile.mkdtemp(prefix="ctf-workspace-")
-
             challenge_root = Path(self.challenge_dir).resolve()
+            workspace_slug = re.sub(r"[^A-Za-z0-9._-]+", "-", self.workspace_name).strip("-.")
+            workspace_path = challenge_root / "workspace" / (workspace_slug or "default")
+            workspace_path.mkdir(parents=True, exist_ok=True)
+            self.workspace_dir = str(workspace_path)
             distfiles = str(challenge_root / "distfiles")
             meta_yml = str(challenge_root / "metadata.yml")
 
@@ -134,7 +137,13 @@ class DockerSandbox:
                     "ExtraHosts": ["host.docker.internal:host-gateway"],
                     "CapAdd": ["SYS_ADMIN", "SYS_PTRACE"],
                     "SecurityOpt": ["seccomp=unconfined"],
-                    "Devices": [{"PathOnHost": "/dev/loop-control", "PathInContainer": "/dev/loop-control", "CgroupPermissions": "rwm"}],
+                    "Devices": [
+                        {
+                            "PathOnHost": "/dev/loop-control",
+                            "PathInContainer": "/dev/loop-control",
+                            "CgroupPermissions": "rwm",
+                        }
+                    ],
                     "Memory": self._parse_memory_limit(),
                     "NanoCpus": int(2 * 1e9),
                 },
@@ -285,11 +294,4 @@ class DockerSandbox:
                 pass
             self._docker = None
 
-        if self.workspace_dir:
-            import shutil
-            try:
-                shutil.rmtree(self.workspace_dir, ignore_errors=True)
-            except Exception:
-                pass
-            self.workspace_dir = ""
         logger.info("Sandbox stopped")
