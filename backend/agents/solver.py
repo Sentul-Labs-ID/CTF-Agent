@@ -13,6 +13,7 @@ from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_ai.toolsets.wrapper import WrapperToolset
+from pydantic_ai.usage import RunUsage
 
 from backend.cost_tracker import CostTracker
 from backend.ctfd import CTFdClient
@@ -46,6 +47,12 @@ from backend.tracing import SolverTracer
 from backend.writeup import generate_writeup
 
 logger = logging.getLogger(__name__)
+
+
+def _result_usage(result: Any) -> RunUsage:
+    """Read usage from current and legacy Pydantic AI result objects."""
+    usage = result.usage
+    return usage() if callable(usage) else usage
 
 
 @dataclass
@@ -228,7 +235,7 @@ class Solver:
             )
 
             duration = time.monotonic() - t0
-            usage = result.usage()
+            usage = _result_usage(result)
 
             self.cost_tracker.record(
                 self.agent_name,

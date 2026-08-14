@@ -42,6 +42,9 @@ CONTEXT_WINDOWS: dict[str, int] = {
     "openai/gpt-oss-20b": 131_072,
     "llama-3.3-70b-versatile": 131_072,
     "gemini-3-flash-preview": 1_000_000,
+    "gemini-3.5-flash-lite": 1_048_576,
+    "gemini-3.6-flash": 1_048_576,
+    "gemini-3.1-pro-preview": 1_048_576,
 }
 
 # Models that support vision
@@ -55,6 +58,9 @@ VISION_MODELS: set[str] = {
     "claude-sonnet-4-6",
     "claude-haiku-4-5",
     "gemini-3-flash-preview",
+    "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
+    "gemini-3.1-pro-preview",
 }
 
 
@@ -148,10 +154,16 @@ def resolve_model_settings(spec: str) -> ModelSettings:
         case "anthropic":
             return AnthropicModelSettings(max_tokens=64_000)
         case "google":
+            model_id = model_id_from_spec(spec)
+            thinking_level = {
+                "gemini-3.5-flash-lite": "low",
+                "gemini-3.6-flash": "medium",
+                "gemini-3.1-pro-preview": "high",
+            }.get(model_id, "high")
             return GoogleModelSettings(
                 max_tokens=64_000,
                 google_thinking_config={
-                    "thinking_level": "high",
+                    "thinking_level": thinking_level,
                     "include_thoughts": True,
                 },
             )

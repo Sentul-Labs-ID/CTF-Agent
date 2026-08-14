@@ -35,7 +35,11 @@ def _setup_logging(verbose: bool = False) -> None:
 @click.option("--models", multiple=True, help="Model specs (default: all configured)")
 @click.option("--challenge", default=None, help="Solve a single challenge directory")
 @click.option("--challenges-dir", default="challenges", help="Directory for challenge files")
-@click.option("--no-submit", is_flag=True, help="Dry run — don't submit flags")
+@click.option(
+    "--submit/--no-submit",
+    default=False,
+    help="Allow platform submission (default: --no-submit/manual submission)",
+)
 @click.option("--coordinator-model", default=None, help="Model for coordinator (default: claude-opus-4-6)")
 @click.option("--coordinator", default="claude", type=click.Choice(["claude", "codex"]), help="Coordinator backend")
 @click.option("--max-challenges", default=10, type=int, help="Max challenges solved concurrently")
@@ -48,7 +52,7 @@ def main(
     models: tuple[str, ...],
     challenge: str | None,
     challenges_dir: str,
-    no_submit: bool,
+    submit: bool,
     coordinator_model: str | None,
     coordinator: str,
     max_challenges: int,
@@ -78,9 +82,9 @@ def main(
     console.print()
 
     if challenge:
-        asyncio.run(_run_single(settings, challenge, model_specs, no_submit, max_challenges))
+        asyncio.run(_run_single(settings, challenge, model_specs, not submit, max_challenges))
     else:
-        asyncio.run(_run_coordinator(settings, model_specs, challenges_dir, no_submit, coordinator_model, coordinator, max_challenges, msg_port))
+        asyncio.run(_run_coordinator(settings, model_specs, challenges_dir, not submit, coordinator_model, coordinator, max_challenges, msg_port))
 
 
 async def _run_single(

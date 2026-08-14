@@ -31,6 +31,9 @@ MODEL_OPTIONS = {
     "HEMAT | Groq GPT-OSS 20B": "groq/openai/gpt-oss-20b",
     "SEDANG | Groq Llama 3.3 70B": "groq/llama-3.3-70b-versatile",
     "KUAT | Groq GPT-OSS 120B": "groq/openai/gpt-oss-120b",
+    "HEMAT | Gemini 3.5 Flash-Lite": "google/gemini-3.5-flash-lite",
+    "SEDANG | Gemini 3.6 Flash": "google/gemini-3.6-flash",
+    "KUAT | Gemini 3.1 Pro Preview": "google/gemini-3.1-pro-preview",
 }
 MODELS = tuple(MODEL_OPTIONS)
 DEFAULT_MODEL_LABEL = "SEDANG | Codex GPT-5.6 Terra"
@@ -309,6 +312,8 @@ class CTFGui(tk.Tk):
             text = "Hemat = cepat/murah, Sedang = seimbang, Kuat = analisis tersulit. Claude memakai API key, bukan kuota Claude Code."
         elif model.startswith("groq/"):
             text = "Hemat = cepat/murah, Sedang = seimbang, Kuat = analisis tersulit. Groq memakai output ringkas agar sesuai limit TPM."
+        elif model.startswith("google/"):
+            text = "Gemini memakai API key. Hemat dan Sedang stabil (GA); pilihan Kuat masih Preview dan mungkin memerlukan billing."
         else:
             text = "Provider model eksternal."
         self.model_help_var.set(text)
@@ -319,30 +324,36 @@ class CTFGui(tk.Tk):
     def _refresh_api_status(self) -> None:
         claude = "siap" if _has_api_key("ANTHROPIC_API_KEY") else "belum diatur"
         groq = "siap" if _has_api_key("GROQ_API_KEY") else "belum diatur"
-        self.api_status_var.set(f"Status API — Claude: {claude} | Groq: {groq}")
+        gemini = "siap" if _has_api_key("GEMINI_API_KEY") else "belum diatur"
+        self.api_status_var.set(
+            f"Status API — Claude: {claude} | Groq: {groq} | Gemini: {gemini}"
+        )
 
     def _configure_api_keys(self) -> None:
-        claude_key = simpledialog.askstring(
-            "Claude API Key",
-            "Masukkan ANTHROPIC_API_KEY. Kosongkan untuk mempertahankan key yang sudah ada:",
-            parent=self,
-            show="*",
+        providers = {
+            "anthropic/": ("Claude", "ANTHROPIC_API_KEY"),
+            "groq/": ("Groq", "GROQ_API_KEY"),
+            "google/": ("Gemini", "GEMINI_API_KEY"),
+        }
+        selected_model = self._selected_model_spec()
+        selected_provider = next(
+            (prefix for prefix in providers if selected_model.startswith(prefix)), None
         )
-        if claude_key is None:
-            return
-        groq_key = simpledialog.askstring(
-            "Groq API Key",
-            "Masukkan GROQ_API_KEY. Kosongkan untuk mempertahankan key yang sudah ada:",
-            parent=self,
-            show="*",
+        targets = (
+            [providers[selected_provider]] if selected_provider else list(providers.values())
         )
-        if groq_key is None:
-            return
         updates = {}
-        if claude_key.strip():
-            updates["ANTHROPIC_API_KEY"] = claude_key.strip()
-        if groq_key.strip():
-            updates["GROQ_API_KEY"] = groq_key.strip()
+        for provider_name, key_name in targets:
+            value = simpledialog.askstring(
+                f"{provider_name} API Key",
+                f"Masukkan {key_name}. Kosongkan untuk mempertahankan key yang sudah ada:",
+                parent=self,
+                show="*",
+            )
+            if value is None:
+                return
+            if value.strip():
+                updates[key_name] = value.strip()
         try:
             if updates:
                 _write_env_values(updates)
@@ -540,6 +551,8 @@ class CTFGui(tk.Tk):
             required_key = "ANTHROPIC_API_KEY"
         elif selected_model.startswith("groq/"):
             required_key = "GROQ_API_KEY"
+        elif selected_model.startswith("google/"):
+            required_key = "GEMINI_API_KEY"
         if required_key and not _has_api_key(required_key):
             messagebox.showerror(
                 "API Key Belum Diatur",

@@ -8,12 +8,17 @@ def test_frontend_model_labels_and_project_root():
     options = namespace["MODEL_OPTIONS"]
 
     assert namespace["ROOT"] == project_root
-    assert len(options) == 9
-    assert sum(label.startswith("HEMAT |") for label in options) == 3
-    assert sum(label.startswith("SEDANG |") for label in options) == 3
-    assert sum(label.startswith("KUAT |") for label in options) == 3
+    assert len(options) == 12
+    assert sum(label.startswith("HEMAT |") for label in options) == 4
+    assert sum(label.startswith("SEDANG |") for label in options) == 4
+    assert sum(label.startswith("KUAT |") for label in options) == 4
     assert {spec for spec in options.values() if spec.startswith("codex/")} == {
         "codex/gpt-5.6-luna",
         "codex/gpt-5.6-terra",
         "codex/gpt-5.6-sol",
+    }
+    assert {spec for spec in options.values() if spec.startswith("google/")} == {
+        "google/gemini-3.5-flash-lite",
+        "google/gemini-3.6-flash",
+        "google/gemini-3.1-pro-preview",
     }

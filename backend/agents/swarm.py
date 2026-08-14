@@ -160,6 +160,9 @@ class ChallengeSwarm:
     async def try_submit_flag(self, flag: str, model_spec: str) -> tuple[str, bool]:
         """Cooldown-gated, deduplicated flag submission. Returns (display, is_confirmed)."""
         async with self._flag_lock:
+            if self.no_submit:
+                return f'DRY RUN — would submit "{flag.strip()}"; upload it manually.', False
+
             if self.confirmed_flag:
                 return f"ALREADY SOLVED — flag already confirmed: {self.confirmed_flag}", True
 

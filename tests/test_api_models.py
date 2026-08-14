@@ -1,4 +1,5 @@
 from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.models.openai import OpenAIChatModel
 
 from backend.config import Settings
@@ -30,6 +31,30 @@ def test_groq_slash_model_id_is_preserved_without_network():
 def test_groq_output_allowance_stays_below_on_demand_tpm_limit():
     settings = resolve_model_settings("groq/llama-3.3-70b-versatile")
     assert settings["max_tokens"] == 4_096
+
+
+def test_latest_gemini_models_resolve_without_network():
+    settings = Settings(_env_file=None, gemini_api_key="test-gemini-key")
+    for model_id in (
+        "gemini-3.5-flash-lite",
+        "gemini-3.6-flash",
+        "gemini-3.1-pro-preview",
+    ):
+        model = resolve_model(f"google/{model_id}", settings)
+        assert isinstance(model, GoogleModel)
+        assert model.model_name == model_id
+        assert context_window(f"google/{model_id}") == 1_048_576
+
+
+def test_gemini_tiers_use_matching_thinking_levels():
+    expected = {
+        "gemini-3.5-flash-lite": "low",
+        "gemini-3.6-flash": "medium",
+        "gemini-3.1-pro-preview": "high",
+    }
+    for model_id, level in expected.items():
+        settings = resolve_model_settings(f"google/{model_id}")
+        assert settings["google_thinking_config"]["thinking_level"] == level
 
 
 def test_claude_sdk_effort_suffix_is_not_part_of_model_id():
